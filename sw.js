@@ -1,3 +1,4 @@
+/* deploy automatico via GitHub ligado 01/07/2026 */
 /* Pedidos Nilo - service worker (HTML rede-primeiro, assets cache-primeiro) */
 const CACHE = 'pedidos-nilo-v2';
 const ASSETS = [
