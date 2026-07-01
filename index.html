@@ -180,6 +180,14 @@
   .hist-item .hh { color: #666; font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .hist-aviso { font-size: 17px; color: #555; text-align: center; padding: 10px 14px 4px; }
 
+  .hist-confirma { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .marca { font-size: 14px; font-weight: 800; padding: 4px 9px; border-radius: 7px; color: #fff; white-space: nowrap; }
+  .marca.v { background: #16a34a; }
+  .marca.x { background: #dc2626; }
+  .marca.tudook { background: #16a34a; }
+  .hist-check-label { display: flex; align-items: center; gap: 6px; font-size: 15px; color: #333; margin-left: auto; }
+  .hist-check-label input[type=checkbox] { width: 22px; height: 22px; }
+
   .ajuda-fab {
     flex-shrink: 0;
     margin-left: auto;
@@ -305,7 +313,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc,
-  doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -321,6 +329,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const pedidosRef = collection(db, "pedidos");
 const historicoRef = collection(db, "historico");
+const confirmacoesRef = collection(db, "confirmacoes");
 
 /* Grava 1 linha permanente no historico. O app nunca oferece editar/apagar essas linhas (append-only). */
 async function registrarHistorico(acao, item, pessoa, pedidoId) {
@@ -328,6 +337,7 @@ async function registrarHistorico(acao, item, pessoa, pedidoId) {
 }
 
 const PESSOAS = ["Todos", "Nilo", "Heitor", "Evelin"];
+const PESSOAS_REAIS = ["Nilo", "Heitor", "Evelin"];
 let filtroAtual = "Todos";
 let dadosAtuais = [];
 
@@ -398,6 +408,32 @@ onSnapshot(query(historicoRef, orderBy("quando", "desc")), (snap) => {
   renderHistorico();
 }, () => avisoConexao("Sem conexão com o servidor. Verifique a internet."));
 
+/* Confirmação comunitária: 1 doc por (item do historico + pessoa), id fixo pra nunca duplicar. Nunca mexe nos docs do historico em si. */
+let confirmacoesAtuais = [];
+onSnapshot(collection(db, "confirmacoes"), (snap) => {
+  confirmacoesAtuais = snap.docs.map(d => d.data());
+  renderHistorico();
+}, () => avisoConexao("Sem conexão com o servidor. Verifique a internet."));
+
+function confirmadosDe(histId) {
+  return confirmacoesAtuais.filter(c => c.historicoId === histId).map(c => c.pessoa);
+}
+
+window.alternarConfirmacao = async function(histId, marcado) {
+  const eu = minhaIdentidade();
+  if (!eu) { pedirIdentidadeSeNecessario(); return; }
+  const refDoc = doc(db, "confirmacoes", `${histId}_${eu}`);
+  try {
+    if (marcado) {
+      await setDoc(refDoc, { historicoId: histId, pessoa: eu, quando: serverTimestamp() });
+    } else {
+      await deleteDoc(refDoc);
+    }
+  } catch (e) {
+    alert("Não deu para salvar sua confirmação. Verifique a internet e tente de novo.");
+  }
+};
+
 /* Escapa texto livre antes de jogar em innerHTML (evita XSS: alguem digitar <script> no campo do pedido) */
 function esc(txt) {
   const d = document.createElement("div");
@@ -437,14 +473,35 @@ function renderHistorico() {
     alvo.appendChild(v);
     return;
   }
+  const eu = minhaIdentidade();
   historicoAtual.forEach(h => {
     const linha = document.createElement("div");
     linha.className = "hist-item";
+    const confirmados = confirmadosDe(h.id);
+    const tudoOk = PESSOAS_REAIS.every(p => confirmados.includes(p));
+    const marcas = PESSOAS_REAIS.map(p => {
+      const ok = confirmados.includes(p);
+      return `<span class="marca ${ok ? "v" : "x"}">${esc(p)} ${ok ? "✓" : "✗"}</span>`;
+    }).join("");
     linha.innerHTML = `
-      <div><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${esc(h.item)}</div>
+      <div style="flex:1">
+        <div><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${esc(h.item)}</div>
+        <div class="hist-confirma">
+          ${marcas}
+          ${tudoOk ? '<span class="marca tudook">Tudo confirmado</span>' : ''}
+          <label class="hist-check-label">
+            <input type="checkbox" data-hist-id="${h.id}" ${eu && confirmados.includes(eu) ? "checked" : ""}>
+            Confirmo
+          </label>
+        </div>
+      </div>
       <div class="hh">${dataHoraFmt(h.quando)}</div>
     `;
     alvo.appendChild(linha);
+  });
+
+  alvo.querySelectorAll("input[data-hist-id]").forEach(chk => {
+    chk.onchange = () => alternarConfirmacao(chk.dataset.histId, chk.checked);
   });
 }
 
