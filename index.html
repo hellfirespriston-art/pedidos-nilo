@@ -179,6 +179,32 @@
   }
   .hist-item .hh { color: #666; font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .hist-aviso { font-size: 17px; color: #555; text-align: center; padding: 10px 14px 4px; }
+
+  .ajuda-fab {
+    flex-shrink: 0;
+    margin-left: auto;
+    align-self: flex-start;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(0,0,0,.18);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .ajuda-modal .modal { max-height: 82vh; overflow-y: auto; text-align: left; }
+  .ajuda-modal h2 { color: #1e6b52; }
+  .ajuda-modal h3 { font-size: 20px; margin: 22px 0 6px; color: #1e6b52; }
+  .ajuda-modal h3:first-of-type { margin-top: 4px; }
+  .ajuda-modal p { font-size: 17px; margin: 4px 0; color: #333; }
+  .ajuda-modal ul { margin: 4px 0; padding-left: 22px; }
+  .ajuda-modal li { font-size: 17px; margin: 6px 0; color: #333; }
+  .btn-fechar-ajuda { width: 100%; padding: 18px; margin-top: 20px; border: none; border-radius: 10px; font-size: 20px; font-weight: 700; background: #1e6b52; color: #fff; }
 </style>
 </head>
 <body>
@@ -188,6 +214,7 @@
     <div class="header-top">
       <img src="logo-limps.png" alt="Limps Piscina" class="logo">
       <h1>Pedidos — Produto Nossa Casa</h1>
+      <button class="ajuda-fab" id="botaoAjuda" onclick="abrirAjuda()" aria-label="Ajuda">?</button>
     </div>
     <p>Limpi Piscinas · controle simples de quem pediu, entregou e confirmou
       <span class="quem-sou" id="quemSouBar"></span>
@@ -208,6 +235,47 @@
 </div>
 
 <button class="fab" id="botaoNovo" onclick="abrirModal()">+ Novo pedido</button>
+
+<div class="modal-bg ajuda-modal" id="ajudaModalBg">
+  <div class="modal">
+    <h2>Como usar o app</h2>
+
+    <h3>Aba "Pedidos"</h3>
+    <p>Mostra os pedidos que ainda estão em andamento. É a tela principal do dia a dia.</p>
+
+    <h3>Aba "Histórico"</h3>
+    <p>Mostra TUDO que já aconteceu (quem pediu, quem entregou, quem confirmou, e até o que foi apagado). Ninguém consegue editar ou apagar essas linhas — é o registro oficial pra tirar dúvida.</p>
+
+    <h3>Botões Todos / Nilo / Heitor / Evelin</h3>
+    <p>Filtram a lista pra mostrar só os pedidos daquela pessoa. Use pra achar rápido o que cada um pediu.</p>
+
+    <h3>Botão "+ Novo pedido"</h3>
+    <p>Abre a tela pra registrar um pedido novo. Escreva o que foi pedido (ex: "5 galões de cloro granulado") e toque em Salvar. O pedido aparece na hora pra todo mundo, com seu nome.</p>
+
+    <h3>Botão "Marcar entregue"</h3>
+    <p>Só use quando o produto realmente chegou de verdade nas suas mãos. Fica registrado seu nome e o horário. Depois disso o pedido não pode mais ser apagado.</p>
+
+    <h3>Botão "Confirmar"</h3>
+    <p>Só use depois de já ter conferido a entrega (quantidade certa, produto certo). É o passo final: fecha o pedido como concluído.</p>
+
+    <h3>Botão "x" (apagar)</h3>
+    <p>Apaga um pedido, mas só funciona enquanto ele ainda está como "Pedido feito" (antes de entregar). Use só se o pedido foi um engano ou duplicado — mesmo apagado, fica marcado no Histórico.</p>
+
+    <h3>Botão "Instalar app"</h3>
+    <p>Coloca o app na tela inicial do celular, como se fosse um aplicativo de verdade. Recomendado fazer uma vez só.</p>
+
+    <h3>Para o app funcionar bem</h3>
+    <ul>
+      <li>Escolha seu nome certo (Nilo, Heitor ou Evelin) na primeira vez que abrir — depois disso fica travado nesse celular.</li>
+      <li>Só marque "Entregue" quando o produto tiver chegado de verdade, nunca antes.</li>
+      <li>Só toque em "Confirmar" depois de conferir a entrega.</li>
+      <li>Não apague pedido à toa — use o "x" só em caso de erro real.</li>
+      <li>Em caso de dúvida sobre o que aconteceu com um pedido, olhe a aba "Histórico".</li>
+    </ul>
+
+    <button class="btn-fechar-ajuda" onclick="fecharAjuda()">Entendi</button>
+  </div>
+</div>
 
 <div class="modal-bg" id="modalBg">
   <div class="modal">
@@ -497,6 +565,13 @@ window.abrirModal = function() {
 };
 window.fecharModal = function() {
   document.getElementById("modalBg").classList.remove("aberto");
+};
+
+window.abrirAjuda = function() {
+  document.getElementById("ajudaModalBg").classList.add("aberto");
+};
+window.fecharAjuda = function() {
+  document.getElementById("ajudaModalBg").classList.remove("aberto");
 };
 
 let salvandoPedido = false;
