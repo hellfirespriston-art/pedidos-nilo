@@ -773,7 +773,7 @@ function render() {
       </div>`) : ""}
       <div class="card-actions">
         ${souEvelin ? `<button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">${ICONE_APERTO_MAO} Entregue</button>` : ""}
-        <button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Recebido</button>
+        ${souEvelin ? "" : `<button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Recebido</button>`}
         <button class="btn-apagar" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-apagar="1">x</button>
       </div>
     `;
