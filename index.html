@@ -734,6 +734,7 @@ function render() {
     const souEvelin = eu === "Evelin";
     const aguardandoEvelin = p.status === "pedido" && !p.evelinConfirmou;
     const podePreparar = souEvelin && p.status === "pedido";
+    const podeRecado = p.status !== "confirmado";
     let log = "";
     if (aguardandoEvelin) log += `<div class="card-log laranja">Aguardando confirmação da Evelin</div>`;
     if (p.evelinConfirmou) {
@@ -765,7 +766,7 @@ function render() {
       </div>` : `
       <div class="card-actions-evelin">
         <button class="${p.preparando ? "ativo" : ""}" ${podePreparar ? "" : "disabled"} data-id="${p.id}" data-preparar="1">${p.preparando ? "Preparando ✓" : "Marcar preparando"}</button>
-        <button data-id="${p.id}" data-recado="1">Deixar recado</button>
+        <button ${podeRecado ? "" : "disabled"} data-id="${p.id}" data-recado="1">Deixar recado</button>
       </div>`) : ""}
       <div class="card-actions">
         <button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">${ICONE_APERTO_MAO} Entregue</button>
