@@ -853,11 +853,21 @@ function renderHistorico() {
   });
 }
 
+/* Senha da aba Gastos: protege mesmo que alguém pegue o celular do Nilo já logado. Pede de novo a cada carregamento do app. */
+const SENHA_GASTOS = "666";
+let gastosDesbloqueado = false;
+
 document.querySelectorAll(".aba").forEach(a => {
   a.onclick = () => {
+    const abaAtual = a.dataset.aba;
+    if (abaAtual === "gastos" && !gastosDesbloqueado) {
+      const senha = prompt("Senha para ver Gastos:");
+      if (senha === null) return;
+      if (senha !== SENHA_GASTOS) { alert("Senha incorreta."); return; }
+      gastosDesbloqueado = true;
+    }
     document.querySelectorAll(".aba").forEach(x => x.classList.remove("ativa"));
     a.classList.add("ativa");
-    const abaAtual = a.dataset.aba;
     const ehHistorico = abaAtual === "historico";
     const ehGastos = abaAtual === "gastos";
     document.getElementById("historico").classList.toggle("ativo", ehHistorico);
