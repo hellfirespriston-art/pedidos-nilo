@@ -338,6 +338,22 @@
   </div>
 </div>
 
+<div class="modal-bg" id="modalEntregaBg">
+  <div class="modal">
+    <h2>Confirmar entrega</h2>
+    <label>Produto enviado</label>
+    <input id="entregaProdutoInput" placeholder="Ex: 5 galões de cloro granulado" maxlength="80">
+    <label>Quantidade</label>
+    <input id="entregaQuantidadeInput" placeholder="Ex: 5 galões" maxlength="40">
+    <label>Valor</label>
+    <input id="entregaValorInput" placeholder="Ex: R$ 150,00" maxlength="30">
+    <div class="modal-actions">
+      <button class="btn-cancelar" onclick="fecharModalEntrega()">Cancelar</button>
+      <button class="btn-salvar" onclick="confirmarEntregaComDetalhes()">Confirmar entrega</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg id-modal" id="idModalBg">
   <div class="modal">
     <h2>Quem é você?</h2>
@@ -427,8 +443,10 @@ if (messaging) {
 }
 
 /* Grava 1 linha permanente no historico. O app nunca oferece editar/apagar essas linhas (append-only). */
-async function registrarHistorico(acao, item, pessoa, pedidoId) {
-  await addDoc(historicoRef, { acao, item, pessoa, pedidoId, quando: serverTimestamp() });
+async function registrarHistorico(acao, item, pessoa, pedidoId, detalhes) {
+  const dados = { acao, item, pessoa, pedidoId, quando: serverTimestamp() };
+  if (detalhes) Object.assign(dados, detalhes);
+  await addDoc(historicoRef, dados);
 }
 
 const PESSOAS = ["Todos", "Nilo", "Heitor"];
@@ -607,9 +625,17 @@ function renderHistorico() {
       <div style="flex:1">
         <div><b>${esc(g.item)}</b></div>
         <div class="hist-timeline">
-          ${acoesCronologicas.map(h => `
+          ${acoesCronologicas.map(h => {
+            const detalhes = [
+              h.entregaProduto ? `Produto: ${esc(h.entregaProduto)}` : "",
+              h.entregaQuantidade ? `Qtd: ${esc(h.entregaQuantidade)}` : "",
+              h.entregaValor ? `Valor: ${esc(h.entregaValor)}` : "",
+            ].filter(Boolean).join(" · ");
+            return `
             <div class="hist-linha"><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${dataHoraFmt(h.quando)}</div>
-          `).join("")}
+            ${detalhes ? `<div class="hist-linha" style="padding-left:14px;color:#666">${detalhes}</div>` : ""}
+          `;
+          }).join("")}
         </div>
         <div class="hist-confirma">
           ${foiApagado
@@ -691,7 +717,15 @@ function render() {
     const podePreparar = souEvelin && p.status === "pedido";
     let log = "";
     if (p.preparando && p.status === "pedido") log += `<div class="card-log laranja">Evelin está preparando · ${dataHoraFmt(p.preparandoEm)}</div>`;
-    if (p.entreguePor) log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataHoraFmt(p.entregueEm)}</div>`;
+    if (p.entreguePor) {
+      log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataHoraFmt(p.entregueEm)}</div>`;
+      const detalhes = [
+        p.entregaProduto ? `Produto: ${esc(p.entregaProduto)}` : "",
+        p.entregaQuantidade ? `Qtd: ${esc(p.entregaQuantidade)}` : "",
+        p.entregaValor ? `Valor: ${esc(p.entregaValor)}` : "",
+      ].filter(Boolean).join(" · ");
+      if (detalhes) log += `<div class="card-recado">${detalhes}</div>`;
+    }
     if (p.confirmadoPor) log += `<div class="card-log">Confirmado por ${esc(p.confirmadoPor)} ${dataHoraFmt(p.confirmadoEm)}</div>`;
     if (p.recado) log += `<div class="card-recado">Recado da Evelin: ${esc(p.recado)} · ${dataHoraFmt(p.recadoEm)}</div>`;
     card.innerHTML = `
@@ -718,7 +752,11 @@ function render() {
   });
 
   lista.querySelectorAll("[data-status]").forEach(btn => {
-    btn.onclick = () => mudarStatus(btn.dataset.id, btn.dataset.status);
+    btn.onclick = () => {
+      /* Evelin é quem sabe o que realmente está mandando — pede produto/quantidade/valor antes de marcar entregue */
+      if (btn.dataset.status === "entregue" && minhaIdentidade() === "Evelin") { abrirModalEntrega(btn.dataset.id); return; }
+      mudarStatus(btn.dataset.id, btn.dataset.status);
+    };
   });
   lista.querySelectorAll("[data-apagar]").forEach(btn => {
     btn.onclick = () => apagarPedido(btn.dataset.id);
@@ -764,7 +802,33 @@ async function salvarRecado(id) {
   }
 }
 
-async function mudarStatus(id, novo) {
+/* Evelin confirma a entrega já informando o que realmente está mandando (pode diferir do que foi pedido) */
+let idEmEntrega = null;
+window.abrirModalEntrega = function(id) {
+  const pedido = dadosAtuais.find(p => p.id === id);
+  if (!pedido) return;
+  idEmEntrega = id;
+  document.getElementById("entregaProdutoInput").value = pedido.item || "";
+  document.getElementById("entregaQuantidadeInput").value = "";
+  document.getElementById("entregaValorInput").value = "";
+  document.getElementById("modalEntregaBg").classList.add("aberto");
+};
+window.fecharModalEntrega = function() {
+  document.getElementById("modalEntregaBg").classList.remove("aberto");
+  idEmEntrega = null;
+};
+window.confirmarEntregaComDetalhes = async function() {
+  if (!idEmEntrega) return;
+  const produto = document.getElementById("entregaProdutoInput").value.trim();
+  const quantidade = document.getElementById("entregaQuantidadeInput").value.trim();
+  const valor = document.getElementById("entregaValorInput").value.trim();
+  if (!produto) { alert("Diz o que está sendo enviado."); return; }
+  const id = idEmEntrega;
+  fecharModalEntrega();
+  await mudarStatus(id, "entregue", { entregaProduto: produto, entregaQuantidade: quantidade, entregaValor: valor });
+};
+
+async function mudarStatus(id, novo, detalhesEntrega) {
   const eu = minhaIdentidade();
   if (!eu) { pedirIdentidadeSeNecessario(); return; }
   const pedido = dadosAtuais.find(p => p.id === id);
@@ -775,12 +839,14 @@ async function mudarStatus(id, novo) {
   /* trava de papel: quem pediu não marca a própria entrega; só quem pediu confirma o recebimento */
   if (novo === "entregue" && eu === pedido.quem) { alert("Quem fez o pedido não pode marcar a própria entrega. Outra pessoa marca quando entregar."); return; }
   if (novo === "confirmado" && eu !== pedido.quem) { alert(`Só quem fez o pedido (${pedido.quem}) pode confirmar o recebimento.`); return; }
-  const pergunta = novo === "entregue"
-    ? `Confirma que a entrega foi feita? Isso vai ficar registrado com o nome ${eu}.`
-    : `Confirma o recebimento como ${eu}? Depois disso o pedido fecha.`;
-  if (!confirm(pergunta)) return;
+  if (!detalhesEntrega) {
+    const pergunta = novo === "entregue"
+      ? `Confirma que a entrega foi feita? Isso vai ficar registrado com o nome ${eu}.`
+      : `Confirma o recebimento como ${eu}? Depois disso o pedido fecha.`;
+    if (!confirm(pergunta)) return;
+  }
   const campos = novo === "entregue"
-    ? { status: novo, entreguePor: eu, entregueEm: serverTimestamp() }
+    ? { status: novo, entreguePor: eu, entregueEm: serverTimestamp(), ...(detalhesEntrega || {}) }
     : { status: novo, confirmadoPor: eu, confirmadoEm: serverTimestamp() };
   const refPedido = doc(db, "pedidos", id);
   try {
@@ -793,7 +859,7 @@ async function mudarStatus(id, novo) {
       }
       tx.update(refPedido, campos);
     });
-    await registrarHistorico(novo, pedido.item, eu, id);
+    await registrarHistorico(novo, pedido.item, eu, id, detalhesEntrega);
     if (novo === "entregue") notificarEntrega(pedido.item, eu);
     /* clicar em "Recebido" já É a confirmação do autor — evita ele repetir a mesma confirmação
        de novo no Histórico. Heitor/Evelin continuam confirmando na mão, cada um o seu. */
