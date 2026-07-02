@@ -195,7 +195,6 @@
   .hist-timeline { margin-top: 2px; }
   .hist-linha { font-size: 13px; color: #444; padding: 1px 0; }
   .hist-linha b { color: #222; }
-  .hist-confirmou-texto { font-size: 11px; color: #16a34a; width: 100%; }
 
   .ajuda-fab {
     flex-shrink: 0;
@@ -574,14 +573,11 @@ function renderHistorico() {
     const faltam = PESSOAS_REAIS.filter(p => !confirmados.includes(p));
     const tudoOk = faltam.length === 0;
     const marcas = PESSOAS_REAIS.map(p => {
-      const ok = confirmados.includes(p);
-      return `<span class="marca ${ok ? "v" : "x"}">${esc(p)} ${ok ? "✓" : "✗"}</span>`;
+      const conf = confirmacoesInfo.find(c => c.pessoa === p);
+      return conf
+        ? `<span class="marca v">${esc(p)} ✓ ${dataHoraFmt(conf.quando)}</span>`
+        : `<span class="marca x">${esc(p)} ✗</span>`;
     }).join("");
-    const textosConfirmou = confirmacoesInfo.length
-      ? `<div class="hist-confirmou-texto">${confirmacoesInfo
-          .map(c => `${esc(c.pessoa)} confirmou — ${dataHoraFmt(c.quando)}`)
-          .join(" · ")}</div>`
-      : "";
     const linha = document.createElement("div");
     linha.className = "hist-item";
     linha.innerHTML = `
@@ -597,7 +593,6 @@ function renderHistorico() {
           ${tudoOk
             ? '<span class="marca tudook">Tudo confirmado</span>'
             : `<span class="marca pendente">Pendente — falta ${esc(faltam.join(", "))}</span>`}
-          ${textosConfirmou}
           ${eu && confirmados.includes(eu)
             ? ""
             : `<label class="hist-check-label">
