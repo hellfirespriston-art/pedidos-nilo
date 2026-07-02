@@ -322,6 +322,7 @@ import {
   getFirestore, collection, onSnapshot, addDoc,
   doc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBXVgVFWHqOk_WISvnibxULNEKqnzROBpQ",
@@ -337,6 +338,59 @@ const db = getFirestore(app);
 const pedidosRef = collection(db, "pedidos");
 const historicoRef = collection(db, "historico");
 const confirmacoesRef = collection(db, "confirmacoes");
+
+/* ==== Notificacoes push (aviso automatico quando alguem marca "entregue", mesmo com o app fechado) ==== */
+const VAPID_KEY = "BMuvwmYEGI0GdZ99u9k402wks2XnGkw2SQunGF0HX9pAptiKx1NudHDYM-5N2TL_eNRxi-dzrqQNrzSs__znyNU";
+let messaging = null;
+try { messaging = getMessaging(app); } catch (e) { messaging = null; }
+
+/* id fixo por celular, pra guardar 1 token por aparelho (uma pessoa pode ter mais de um celular) */
+function deviceId() {
+  let id = localStorage.getItem("nilo_device_id");
+  if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("nilo_device_id", id); }
+  return id;
+}
+
+/* pede permissao de notificacao (se ainda nao decidiu) e guarda o token FCM da pessoa na colecao "tokens".
+   Tudo silencioso: notificacao é um extra, nunca pode travar ou atrapalhar o uso normal do app. */
+async function ativarNotificacoes() {
+  const eu = minhaIdentidade();
+  if (!eu || !messaging || !("Notification" in window)) return;
+  try {
+    let permiss = Notification.permission;
+    if (permiss === "default") permiss = await Notification.requestPermission();
+    if (permiss !== "granted") return;
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (!token) return;
+    await setDoc(doc(db, "tokens", `${eu}_${deviceId()}`), { pessoa: eu, token, atualizadoEm: serverTimestamp() });
+  } catch (e) { /* silencioso de proposito */ }
+}
+
+/* avisa o servidor pra mandar o push pros OUTROS (nao pra quem marcou). Falha em silencio. */
+function notificarEntrega(item, entreguePor) {
+  const destinatarios = PESSOAS_REAIS.filter(p => p !== entreguePor);
+  if (destinatarios.length === 0) return;
+  fetch("/api/notificar-entrega", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item, entreguePor, destinatarios })
+  }).catch(() => {});
+}
+
+/* aviso leve na tela quando o push chega com o app ABERTO (nesse caso o sistema nao mostra a notificacao sozinho) */
+function mostrarToast(msg) {
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;top:12px;left:12px;right:12px;background:#1e6b52;color:#fff;padding:14px 16px;border-radius:12px;font-size:15px;font-weight:600;z-index:300;box-shadow:0 6px 20px rgba(0,0,0,.3)";
+  document.body.appendChild(t);
+  setTimeout(() => { t.remove(); }, 6000);
+}
+if (messaging) {
+  onMessage(messaging, (payload) => {
+    const n = payload.notification || {};
+    mostrarToast((n.title ? n.title + ": " : "") + (n.body || ""));
+  });
+}
 
 /* Grava 1 linha permanente no historico. O app nunca oferece editar/apagar essas linhas (append-only). */
 async function registrarHistorico(acao, item, pessoa, pedidoId) {
@@ -363,6 +417,7 @@ document.querySelectorAll("#idModalBg .id-btn").forEach(b => {
     localStorage.setItem("nilo_identidade", b.dataset.eu);
     document.getElementById("idModalBg").classList.remove("aberto");
     atualizarQuemSou();
+    ativarNotificacoes();
   };
 });
 
@@ -643,6 +698,7 @@ async function mudarStatus(id, novo) {
       tx.update(refPedido, campos);
     });
     await registrarHistorico(novo, pedido.item, eu, id);
+    if (novo === "entregue") notificarEntrega(pedido.item, eu);
   } catch (e) {
     if (e.message === "STATUS_MUDOU") {
       alert("Esse pedido já mudou de status em outro celular nesse instante. Atualizando a tela.");
@@ -717,6 +773,7 @@ window.salvarPedido = async function() {
 
 render();
 pedirIdentidadeSeNecessario();
+ativarNotificacoes();
 
 /* PWA: registra service worker, busca atualizacao ao abrir/voltar, e mostra botao "Instalar app" */
 if('serviceWorker' in navigator){
