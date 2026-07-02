@@ -920,8 +920,11 @@ async function mudarStatus(id, novo) {
     await registrarHistorico(novo, pedido.item, eu, id);
     if (novo === "entregue") notificarEntrega(pedido.item, eu);
     /* clicar em "Recebido" já É a confirmação do autor — evita ele repetir a mesma confirmação
-       de novo no Histórico. Heitor/Evelin continuam confirmando na mão, cada um o seu. */
-    if (novo === "confirmado" && !confirmadosDe(id).includes(eu)) {
+       de novo no Histórico. Mesma logica pra Evelin: ela já confirmou o pedido (produto/qtd/valor)
+       antes, entao clicar em "Entregue" já É a confirmação dela também. Só o Heitor continua
+       confirmando na mão quando não for o autor nem a Evelin. */
+    const jaConta = (novo === "confirmado") || (novo === "entregue" && eu === "Evelin");
+    if (jaConta && !confirmadosDe(id).includes(eu)) {
       try {
         await setDoc(doc(db, "confirmacoes", `${id}_${eu}`), { pedidoId: id, pessoa: eu, quando: serverTimestamp() });
       } catch (e) { /* confirmação comunitária é bônus aqui; o status já fechou de qualquer forma */ }
