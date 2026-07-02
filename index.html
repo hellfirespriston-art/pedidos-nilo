@@ -179,6 +179,8 @@
   .card-actions-evelin button.ativo { background: #d97706; color: #fff; }
   .card-actions-evelin button.btn-confirmar-pedido { background: #16a34a; color: #fff; border-color: #16a34a; }
   .card-actions-evelin button.btn-descartar-pedido { background: #ef4444; color: #fff; border-color: #ef4444; }
+  .card-actions-evelin button.btn-pago { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .card-actions-evelin button.btn-nao-pago { background: #ef4444; color: #fff; border-color: #ef4444; }
 
   .abas { display: flex; background: #fff; border-bottom: 1px solid #e2e5e9; }
   .aba { flex: 1; text-align: center; padding: 18px; font-size: 18px; font-weight: 700; color: #666; border-bottom: 4px solid transparent; }
@@ -252,6 +254,10 @@
   .gastos-item-nome { font-weight: 700; }
   .gastos-item-valor { font-weight: 700; color: #1e6b52; white-space: nowrap; }
   .gastos-item-data { font-size: 12px; color: #666; margin-top: 2px; }
+  .gastos-selo { font-weight: 700; }
+  .gastos-selo.pago { color: #16a34a; }
+  .gastos-selo.nao-pago { color: #ef4444; }
+  .gastos-selo.pendente { color: #d97706; }
 
   .ajuda-fab {
     flex-shrink: 0;
@@ -524,6 +530,13 @@ function atualizarQuemSou() {
   document.getElementById("quemSouBar").innerHTML = eu ? `Você: <b>${esc(eu)}</b>` : "";
   /* Evelin é a vendedora, não faz pedido — sem botão de novo pedido pra ela */
   document.getElementById("botaoNovo").style.display = eu === "Evelin" ? "none" : "";
+  /* Gastos é controle financeiro do dono — só o Nilo vê essa aba */
+  const abaGastos = document.querySelector('[data-aba="gastos"]');
+  const souNilo = eu === "Nilo";
+  abaGastos.style.display = souNilo ? "" : "none";
+  if (!souNilo && abaGastos.classList.contains("ativa")) {
+    document.querySelector('[data-aba="pedidos"]').click();
+  }
 }
 document.querySelectorAll("#idModalBg .id-btn").forEach(b => {
   b.onclick = () => {
@@ -676,18 +689,30 @@ function rangePeriodoGastos(tipo) {
 }
 
 function gastosNoPeriodo(inicio, fim) {
+  const pagamentoPorPedido = new Map();
+  historicoAtual.forEach(h => {
+    if (h.acao === "pagamento") pagamentoPorPedido.set(h.pedidoId, h.pagamentoStatus);
+  });
+
   const entradas = historicoAtual.filter(h =>
     h.acao === "aceitou" && h.pedidoValor && h.quando &&
     h.quando.toDate() >= inicio && h.quando.toDate() <= fim
   );
-  let total = 0, contados = 0, naoContados = 0;
+  let total = 0, totalPago = 0, totalEmAberto = 0, contados = 0, naoContados = 0;
   const linhas = entradas.map(h => {
     const numerico = parseValorNumero(h.pedidoValor);
-    if (numerico != null) { total += numerico; contados++; } else { naoContados++; }
-    return { item: h.item, valor: h.pedidoValor, quando: h.quando, numerico };
+    const pagamento = pagamentoPorPedido.get(h.pedidoId) || "pendente";
+    if (numerico != null) {
+      total += numerico;
+      contados++;
+      if (pagamento === "pago") totalPago += numerico; else totalEmAberto += numerico;
+    } else {
+      naoContados++;
+    }
+    return { item: h.item, valor: h.pedidoValor, quando: h.quando, numerico, pagamento };
   });
   linhas.sort((a, b) => b.quando.toDate() - a.quando.toDate());
-  return { total, contados, naoContados, linhas };
+  return { total, totalPago, totalEmAberto, contados, naoContados, linhas };
 }
 
 function renderGastos() {
@@ -702,7 +727,7 @@ function renderGastos() {
   });
 
   const { inicio, fim } = rangePeriodoGastos(periodoGastosAtual);
-  const { total, contados, naoContados, linhas } = gastosNoPeriodo(inicio, fim);
+  const { total, totalPago, totalEmAberto, contados, naoContados, linhas } = gastosNoPeriodo(inicio, fim);
   const resumo = document.getElementById("gastosResumo");
 
   if (linhas.length === 0) {
@@ -710,9 +735,16 @@ function renderGastos() {
     return;
   }
 
+  const SELO_PAGAMENTO = {
+    pago: `<span class="gastos-selo pago">Pago</span>`,
+    nao_pago: `<span class="gastos-selo nao-pago">Não pago</span>`,
+    pendente: `<span class="gastos-selo pendente">Aguardando confirmação</span>`,
+  };
+
   resumo.innerHTML = `
     <div class="gastos-total">${formatarReal(total)}</div>
     <div class="gastos-sub">${contados} pedido${contados === 1 ? "" : "s"} confirmado${contados === 1 ? "" : "s"}${naoContados ? ` · ${naoContados} sem valor reconhecido` : ""}</div>
+    <div class="gastos-sub">Pago: <b>${formatarReal(totalPago)}</b> · Em aberto: <b>${formatarReal(totalEmAberto)}</b></div>
     <div class="gastos-lista">
       ${linhas.map(l => `
         <div class="gastos-item">
@@ -720,7 +752,7 @@ function renderGastos() {
             <span class="gastos-item-nome">${esc(l.item)}</span>
             <span class="gastos-item-valor">${l.numerico != null ? formatarReal(l.numerico) : esc(l.valor)}</span>
           </div>
-          <div class="gastos-item-data">${dataHoraFmt(l.quando)}</div>
+          <div class="gastos-item-data">${dataHoraFmt(l.quando)} · ${SELO_PAGAMENTO[l.pagamento]}</div>
         </div>
       `).join("")}
     </div>
@@ -783,8 +815,11 @@ function renderHistorico() {
               h.pedidoQuantidade ? `Qtd: ${esc(h.pedidoQuantidade)}` : "",
               h.pedidoValor ? `Valor: ${esc(h.pedidoValor)}` : "",
             ].filter(Boolean).join(" · ");
+            const rotuloAcao = h.acao === "pagamento"
+              ? (h.pagamentoStatus === "pago" ? "marcou como PAGO" : "marcou como NÃO PAGO")
+              : (ACAO_LABEL[h.acao] || h.acao);
             return `
-            <div class="hist-linha"><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${dataHoraFmt(h.quando)}</div>
+            <div class="hist-linha"><b>${esc(h.pessoa)}</b> ${esc(rotuloAcao)} — ${dataHoraFmt(h.quando)}</div>
             ${detalhes ? `<div class="hist-linha" style="padding-left:14px;color:#666">${detalhes}</div>` : ""}
           `;
           }).join("")}
@@ -874,6 +909,8 @@ function render() {
     const aguardandoEvelin = p.status === "pedido" && !p.evelinConfirmou;
     const podePreparar = souEvelin && p.status === "pedido";
     const podeRecado = p.status !== "confirmado";
+    /* Pagamento: só a Evelin marca, só depois que ela já entregou, e só uma vez (não dá pra voltar atrás) */
+    const podeMarcarPagamento = souEvelin && p.status !== "pedido" && p.evelinConfirmou && !p.pagamentoStatus;
     let log = "";
     if (aguardandoEvelin) log += `<div class="card-log laranja">Aguardando confirmação da Evelin</div>`;
     if (p.evelinConfirmou) {
@@ -888,6 +925,10 @@ function render() {
     if (p.preparando && p.status === "pedido") log += `<div class="card-log laranja">Evelin está preparando · ${dataHoraFmt(p.preparandoEm)}</div>`;
     if (p.entreguePor) log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataHoraFmt(p.entregueEm)}</div>`;
     if (p.confirmadoPor) log += `<div class="card-log">Confirmado por ${esc(p.confirmadoPor)} ${dataHoraFmt(p.confirmadoEm)}</div>`;
+    if (p.pagamentoStatus) {
+      const pago = p.pagamentoStatus === "pago";
+      log += `<div class="card-log ${pago ? "" : "laranja"}">${pago ? "Pagamento confirmado" : "Marcado como NÃO pago"} · ${dataHoraFmt(p.pagamentoConfirmadoEm)}</div>`;
+    }
     if (p.recado) log += `<div class="card-recado recado-evelin">Recado da Evelin: ${esc(p.recado)} · ${dataHoraFmt(p.recadoEm)}</div>`;
     card.innerHTML = `
       <div class="card-top">
@@ -912,6 +953,11 @@ function render() {
         ${souEvelin ? "" : `<button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Recebido</button>`}
         <button class="btn-apagar" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-apagar="1">x</button>
       </div>
+      ${podeMarcarPagamento ? `
+      <div class="card-actions-evelin">
+        <button class="btn-pago" data-id="${p.id}" data-pagamento="pago">Pago</button>
+        <button class="btn-nao-pago" data-id="${p.id}" data-pagamento="nao_pago">Não pago</button>
+      </div>` : ""}
     `;
     lista.appendChild(card);
   });
@@ -934,6 +980,29 @@ function render() {
   lista.querySelectorAll("[data-descartar]").forEach(btn => {
     btn.onclick = () => apagarPedido(btn.dataset.id);
   });
+  lista.querySelectorAll("[data-pagamento]").forEach(btn => {
+    btn.onclick = () => marcarPagamento(btn.dataset.id, btn.dataset.pagamento);
+  });
+}
+
+/* Pagamento: só a Evelin marca, é definitivo (não dá pra desmarcar nem trocar depois) */
+async function marcarPagamento(id, statusPagamento) {
+  const eu = minhaIdentidade();
+  if (eu !== "Evelin") return;
+  const pedido = dadosAtuais.find(p => p.id === id);
+  if (!pedido || pedido.pagamentoStatus) return;
+  const rotulo = statusPagamento === "pago" ? "PAGO" : "NÃO PAGO";
+  if (!confirm(`Marcar este pedido como ${rotulo}? Depois de confirmar NÃO dá para voltar atrás.`)) return;
+  try {
+    await updateDoc(doc(db, "pedidos", id), {
+      pagamentoStatus: statusPagamento,
+      pagamentoConfirmadoPor: eu,
+      pagamentoConfirmadoEm: serverTimestamp(),
+    });
+    await registrarHistorico("pagamento", pedido.item, eu, id, { pagamentoStatus: statusPagamento });
+  } catch (e) {
+    alert("Não deu para salvar o pagamento. Verifique a internet e tente de novo.");
+  }
 }
 
 /* Evelin (vendedora) avisa que já começou a separar o pedido — informativo, não trava nem exige confirmação de ninguém */
