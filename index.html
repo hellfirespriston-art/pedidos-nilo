@@ -531,14 +531,6 @@ function esc(txt) {
   return d.innerHTML;
 }
 
-function dataFmt(ts) {
-  if (!ts) return "agora";
-  const diffMs = Date.now() - ts.toDate().getTime();
-  const dias = Math.floor(diffMs / 86400000);
-  if (dias <= 0) return "há pouco";
-  return "há " + dias + " dia(s)";
-}
-
 function dataHoraFmt(ts) {
   if (!ts) return "agora";
   const d = ts.toDate();
@@ -680,13 +672,13 @@ function render() {
     const podeEntregar = p.status === "pedido" && eu && eu !== p.quem;
     const podeConfirmar = p.status === "entregue" && eu && eu === p.quem;
     let log = "";
-    if (p.entreguePor) log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataFmt(p.entregueEm)}</div>`;
-    if (p.confirmadoPor) log += `<div class="card-log">Confirmado por ${esc(p.confirmadoPor)} ${dataFmt(p.confirmadoEm)}</div>`;
+    if (p.entreguePor) log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataHoraFmt(p.entregueEm)}</div>`;
+    if (p.confirmadoPor) log += `<div class="card-log">Confirmado por ${esc(p.confirmadoPor)} ${dataHoraFmt(p.confirmadoEm)}</div>`;
     card.innerHTML = `
       <div class="card-top">
         <div>
           <div class="card-item">${esc(p.item)}</div>
-          <div class="card-quem">Pedido por ${esc(p.quem)} · ${dataFmt(p.criadoEm)}</div>
+          <div class="card-quem">Pedido por ${esc(p.quem)} · ${dataHoraFmt(p.criadoEm)}</div>
           ${log}
         </div>
         <div class="badge status-${p.status}">${statusLabel(p.status)}</div>
