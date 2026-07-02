@@ -189,6 +189,10 @@
   .marca.pendente { background: #d97706; }
   .hist-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #333; margin-left: auto; }
   .hist-check-label input[type=checkbox] { width: 22px; height: 22px; }
+  .hist-timeline { margin-top: 4px; }
+  .hist-linha { font-size: 13px; color: #444; padding: 2px 0; }
+  .hist-linha b { color: #222; }
+  .hist-confirmou-texto { font-size: 12px; color: #16a34a; width: 100%; }
 
   .ajuda-fab {
     flex-shrink: 0;
@@ -417,17 +421,21 @@ onSnapshot(collection(db, "confirmacoes"), (snap) => {
   renderHistorico();
 }, () => avisoConexao("Sem conexão com o servidor. Verifique a internet."));
 
-function confirmadosDe(histId) {
-  return confirmacoesAtuais.filter(c => c.historicoId === histId).map(c => c.pessoa);
+/* Confirmação é por PEDIDO (não por linha de ação) — evita repetir badge/checkbox em cada etapa do mesmo pedido. */
+function confirmacoesDoPedido(pedidoId) {
+  return confirmacoesAtuais.filter(c => c.pedidoId === pedidoId);
+}
+function confirmadosDe(pedidoId) {
+  return confirmacoesDoPedido(pedidoId).map(c => c.pessoa);
 }
 
-window.alternarConfirmacao = async function(histId, marcado) {
+window.alternarConfirmacao = async function(pedidoId, marcado) {
   const eu = minhaIdentidade();
   if (!eu) { pedirIdentidadeSeNecessario(); return; }
-  const refDoc = doc(db, "confirmacoes", `${histId}_${eu}`);
+  const refDoc = doc(db, "confirmacoes", `${pedidoId}_${eu}`);
   try {
     if (marcado) {
-      await setDoc(refDoc, { historicoId: histId, pessoa: eu, quando: serverTimestamp() });
+      await setDoc(refDoc, { pedidoId, pessoa: eu, quando: serverTimestamp() });
     } else {
       await deleteDoc(refDoc);
     }
@@ -476,37 +484,62 @@ function renderHistorico() {
     return;
   }
   const eu = minhaIdentidade();
+
+  /* Agrupa as linhas por pedido (historicoAtual já vem ordenado do mais novo pro mais velho,
+     então o primeiro encontro de cada pedidoId já define a ordem dos grupos por ação mais recente). */
+  const grupos = [];
+  const porPedido = new Map();
   historicoAtual.forEach(h => {
-    const linha = document.createElement("div");
-    linha.className = "hist-item";
-    const confirmados = confirmadosDe(h.id);
+    let g = porPedido.get(h.pedidoId);
+    if (!g) {
+      g = { pedidoId: h.pedidoId, item: h.item, acoes: [] };
+      porPedido.set(h.pedidoId, g);
+      grupos.push(g);
+    }
+    g.acoes.push(h);
+  });
+
+  grupos.forEach(g => {
+    const acoesCronologicas = [...g.acoes].reverse();
+    const confirmados = confirmadosDe(g.pedidoId);
+    const confirmacoesInfo = confirmacoesDoPedido(g.pedidoId);
     const faltam = PESSOAS_REAIS.filter(p => !confirmados.includes(p));
     const tudoOk = faltam.length === 0;
     const marcas = PESSOAS_REAIS.map(p => {
       const ok = confirmados.includes(p);
       return `<span class="marca ${ok ? "v" : "x"}">${esc(p)} ${ok ? "✓" : "✗"}</span>`;
     }).join("");
+    const textosConfirmou = confirmacoesInfo
+      .map(c => `<div class="hist-confirmou-texto">${esc(c.pessoa)} confirmou — ${dataHoraFmt(c.quando)}</div>`)
+      .join("");
+    const linha = document.createElement("div");
+    linha.className = "hist-item";
     linha.innerHTML = `
       <div style="flex:1">
-        <div><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${esc(h.item)}</div>
+        <div><b>${esc(g.item)}</b></div>
+        <div class="hist-timeline">
+          ${acoesCronologicas.map(h => `
+            <div class="hist-linha"><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${dataHoraFmt(h.quando)}</div>
+          `).join("")}
+        </div>
         <div class="hist-confirma">
           ${marcas}
           ${tudoOk
             ? '<span class="marca tudook">Tudo confirmado</span>'
             : `<span class="marca pendente">Pendente — falta ${esc(faltam.join(", "))}</span>`}
+          ${textosConfirmou}
           <label class="hist-check-label">
-            <input type="checkbox" data-hist-id="${h.id}" ${eu && confirmados.includes(eu) ? "checked" : ""}>
+            <input type="checkbox" data-pedido-id="${g.pedidoId}" ${eu && confirmados.includes(eu) ? "checked" : ""}>
             Confirmo
           </label>
         </div>
       </div>
-      <div class="hh">${dataHoraFmt(h.quando)}</div>
     `;
     alvo.appendChild(linha);
   });
 
-  alvo.querySelectorAll("input[data-hist-id]").forEach(chk => {
-    chk.onchange = () => alternarConfirmacao(chk.dataset.histId, chk.checked);
+  alvo.querySelectorAll("input[data-pedido-id]").forEach(chk => {
+    chk.onchange = () => alternarConfirmacao(chk.dataset.pedidoId, chk.checked);
   });
 }
 
