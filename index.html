@@ -50,12 +50,13 @@
   }
   .quem-btn.ativo { background: #1e6b52; color: #fff; border-color: #1e6b52; }
 
-  #lista { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  #lista { padding: 12px 16px; display: flex; flex-direction: column; gap: 9px; }
 
   .card {
     background: #fff;
     border-radius: 14px;
-    padding: 20px 20px;
+    padding: 10px 20px;
+    line-height: 1.25;
     box-shadow: 0 1px 4px rgba(0,0,0,.1);
     border-left: 8px solid #cfd6dc;
   }
@@ -64,9 +65,8 @@
   .card.status-confirmado { border-left-color: #16a34a; }
 
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  .card-item { font-weight: 700; font-size: 22px; }
-  .card-quem { font-size: 16px; color: #333; margin-top: 6px; }
-  .card-data { font-size: 14px; color: #666; margin-top: 8px; }
+  .card-item { font-weight: 700; font-size: 18px; }
+  .card-quem { font-size: 14px; color: #333; margin-top: 2px; }
 
   .badge {
     font-size: 14px;
@@ -80,20 +80,21 @@
   .badge.status-entregue { background: #2563eb; }
   .badge.status-confirmado { background: #16a34a; }
 
-  .card-actions { display: flex; gap: 12px; margin-top: 18px; }
+  .card-actions { display: flex; gap: 12px; margin-top: 8px; }
   .card-actions button {
     flex: 1;
-    padding: 16px;
+    padding: 8px 10px;
     border: none;
     border-radius: 10px;
-    font-size: 16px;
+    font-size: 14px;
+    white-space: nowrap;
     font-weight: 600;
     color: #fff;
   }
   .btn-entregue { background: #2563eb; }
   .btn-confirmado { background: #16a34a; }
   .btn-apagar { background: #ef4444; }
-  .card-actions .btn-apagar { flex: 0 0 44px; padding: 16px 8px; }
+  .card-actions .btn-apagar { flex: 0 0 44px; padding: 8px; }
   button:disabled { opacity: .35; }
 
   .vazio { text-align: center; color: #666; padding: 60px 10px; font-size: 18px; }
@@ -157,21 +158,22 @@
   }
   .id-btn:active { background: #1e6b52; color: #fff; }
 
-  .card-log { font-size: 14px; color: #178a4c; margin-top: 10px; }
+  .card-log { font-size: 13px; color: #178a4c; margin-top: 2px; }
   .card-log.azul { color: #2563eb; }
 
   .abas { display: flex; background: #fff; border-bottom: 1px solid #e2e5e9; }
   .aba { flex: 1; text-align: center; padding: 18px; font-size: 18px; font-weight: 700; color: #666; border-bottom: 4px solid transparent; }
   .aba.ativa { color: #1e6b52; border-bottom-color: #1e6b52; }
 
-  #historico { padding: 16px; display: none; flex-direction: column; gap: 14px; }
+  #historico { padding: 12px 16px; display: none; flex-direction: column; gap: 7px; }
   #historico.ativo { display: flex; }
   #lista.escondida { display: none; }
 
   .hist-item {
     background: #fff;
     border-radius: 12px;
-    padding: 16px 18px;
+    padding: 8px 18px;
+    line-height: 1.25;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
     border-left: 5px solid #1e6b52;
     font-size: 15px;
@@ -182,18 +184,18 @@
   .hist-item .hh { color: #666; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .hist-aviso { font-size: 14px; color: #555; text-align: center; padding: 10px 14px 4px; }
 
-  .hist-confirma { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .marca { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 7px; color: #fff; white-space: nowrap; }
+  .hist-confirma { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+  .marca { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; color: #fff; white-space: nowrap; }
   .marca.v { background: #16a34a; }
   .marca.x { background: #dc2626; }
   .marca.tudook { background: #16a34a; }
   .marca.pendente { background: #d97706; }
   .hist-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #333; margin-left: auto; }
-  .hist-check-label input[type=checkbox] { width: 22px; height: 22px; }
-  .hist-timeline { margin-top: 4px; }
-  .hist-linha { font-size: 13px; color: #444; padding: 2px 0; }
+  .hist-check-label input[type=checkbox] { width: 20px; height: 20px; margin: 0; }
+  .hist-timeline { margin-top: 2px; }
+  .hist-linha { font-size: 13px; color: #444; padding: 1px 0; }
   .hist-linha b { color: #222; }
-  .hist-confirmou-texto { font-size: 12px; color: #16a34a; width: 100%; }
+  .hist-confirmou-texto { font-size: 11px; color: #16a34a; width: 100%; }
 
   .ajuda-fab {
     flex-shrink: 0;
@@ -575,9 +577,11 @@ function renderHistorico() {
       const ok = confirmados.includes(p);
       return `<span class="marca ${ok ? "v" : "x"}">${esc(p)} ${ok ? "✓" : "✗"}</span>`;
     }).join("");
-    const textosConfirmou = confirmacoesInfo
-      .map(c => `<div class="hist-confirmou-texto">${esc(c.pessoa)} confirmou — ${dataHoraFmt(c.quando)}</div>`)
-      .join("");
+    const textosConfirmou = confirmacoesInfo.length
+      ? `<div class="hist-confirmou-texto">${confirmacoesInfo
+          .map(c => `${esc(c.pessoa)} confirmou — ${dataHoraFmt(c.quando)}`)
+          .join(" · ")}</div>`
+      : "";
     const linha = document.createElement("div");
     linha.className = "hist-item";
     linha.innerHTML = `
@@ -660,8 +664,7 @@ function render() {
       <div class="card-top">
         <div>
           <div class="card-item">${esc(p.item)}</div>
-          <div class="card-quem">Pedido por ${esc(p.quem)}</div>
-          <div class="card-data">${dataFmt(p.criadoEm)}</div>
+          <div class="card-quem">Pedido por ${esc(p.quem)} · ${dataFmt(p.criadoEm)}</div>
           ${log}
         </div>
         <div class="badge status-${p.status}">${statusLabel(p.status)}</div>
