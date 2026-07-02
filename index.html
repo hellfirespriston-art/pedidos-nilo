@@ -359,6 +359,18 @@
   </div>
 </div>
 
+<div class="modal-bg" id="modalRecadoBg">
+  <div class="modal">
+    <h2>Deixar recado</h2>
+    <label>Recado para esse pedido</label>
+    <input id="recadoInput" placeholder="Ex: Chegando amanhã de manhã" maxlength="120">
+    <div class="modal-actions">
+      <button class="btn-cancelar" onclick="fecharModalRecado()">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarRecado()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg id-modal" id="idModalBg">
   <div class="modal">
     <h2>Quem é você?</h2>
@@ -774,7 +786,7 @@ function render() {
     btn.onclick = () => togglePreparando(btn.dataset.id);
   });
   lista.querySelectorAll("[data-recado]").forEach(btn => {
-    btn.onclick = () => salvarRecado(btn.dataset.id);
+    btn.onclick = () => abrirModalRecado(btn.dataset.id);
   });
   lista.querySelectorAll("[data-confirmar-pedido]").forEach(btn => {
     btn.onclick = () => abrirModalConfirmarPedido(btn.dataset.id);
@@ -801,13 +813,25 @@ async function togglePreparando(id) {
 }
 
 /* recado curto da Evelin sobre o pedido (ex: "sem estoque, só amanhã") — ela pode atualizar quando quiser */
-async function salvarRecado(id) {
+let idEmRecado = null;
+window.abrirModalRecado = function(id) {
   const eu = minhaIdentidade();
   if (eu !== "Evelin") return;
   const pedido = dadosAtuais.find(p => p.id === id);
   if (!pedido) return;
-  const texto = prompt("Recado para esse pedido:", pedido.recado || "");
-  if (texto === null) return;
+  idEmRecado = id;
+  document.getElementById("recadoInput").value = pedido.recado || "";
+  document.getElementById("modalRecadoBg").classList.add("aberto");
+};
+window.fecharModalRecado = function() {
+  document.getElementById("modalRecadoBg").classList.remove("aberto");
+  idEmRecado = null;
+};
+window.salvarRecado = async function() {
+  if (!idEmRecado) return;
+  const id = idEmRecado;
+  const texto = document.getElementById("recadoInput").value;
+  fecharModalRecado();
   try {
     await updateDoc(doc(db, "pedidos", id), texto.trim()
       ? { recado: texto.trim(), recadoEm: serverTimestamp() }
