@@ -31,22 +31,24 @@
 
   .quem-bar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 8px;
     padding: 14px 12px;
     background: #fff;
     border-bottom: 1px solid #e2e5e9;
   }
   .quem-btn {
-    flex: 1 1 calc(50% - 5px);
-    padding: 16px 14px;
+    flex: 1 1 0;
+    padding: 12px 6px;
     border-radius: 10px;
     border: 1px solid #cfd6dc;
     background: #f7f8fa;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     text-align: center;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .quem-btn.ativo { background: #1e6b52; color: #fff; border-color: #1e6b52; }
 
