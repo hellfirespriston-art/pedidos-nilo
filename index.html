@@ -731,6 +731,13 @@ async function mudarStatus(id, novo) {
     });
     await registrarHistorico(novo, pedido.item, eu, id);
     if (novo === "entregue") notificarEntrega(pedido.item, eu);
+    /* clicar em "Recebido" já É a confirmação do autor — evita ele repetir a mesma confirmação
+       de novo no Histórico. Heitor/Evelin continuam confirmando na mão, cada um o seu. */
+    if (novo === "confirmado" && !confirmadosDe(id).includes(eu)) {
+      try {
+        await setDoc(doc(db, "confirmacoes", `${id}_${eu}`), { pedidoId: id, pessoa: eu, quando: serverTimestamp() });
+      } catch (e) { /* confirmação comunitária é bônus aqui; o status já fechou de qualquer forma */ }
+    }
   } catch (e) {
     if (e.message === "STATUS_MUDOU") {
       alert("Esse pedido já mudou de status em outro celular nesse instante. Atualizando a tela.");
