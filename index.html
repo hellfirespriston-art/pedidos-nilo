@@ -729,10 +729,10 @@ function render() {
     card.className = "card status-" + p.status;
     /* ordem certa do fluxo: quem pediu NÃO marca a própria entrega (outra pessoa marca),
        e só quem pediu confirma o recebimento */
-    /* "Entregue" só libera depois que a Evelin confirmar o pedido (informando produto/quantidade/valor reais) */
-    const podeEntregar = p.status === "pedido" && eu && eu !== p.quem && p.evelinConfirmou;
-    const podeConfirmar = p.status === "entregue" && eu && eu === p.quem;
     const souEvelin = eu === "Evelin";
+    /* só a Evelin marca "Entregue" (é ela quem vende/entrega); Nilo e Heitor só recebem, então nem veem esse botão */
+    const podeEntregar = souEvelin && p.status === "pedido" && p.evelinConfirmou;
+    const podeConfirmar = p.status === "entregue" && eu && eu === p.quem;
     const aguardandoEvelin = p.status === "pedido" && !p.evelinConfirmou;
     const podePreparar = souEvelin && p.status === "pedido";
     const podeRecado = p.status !== "confirmado";
@@ -770,7 +770,7 @@ function render() {
         <button ${podeRecado ? "" : "disabled"} data-id="${p.id}" data-recado="1">Deixar recado</button>
       </div>`) : ""}
       <div class="card-actions">
-        <button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">${ICONE_APERTO_MAO} Entregue</button>
+        ${souEvelin ? `<button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">${ICONE_APERTO_MAO} Entregue</button>` : ""}
         <button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Recebido</button>
         <button class="btn-apagar" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-apagar="1">x</button>
       </div>
