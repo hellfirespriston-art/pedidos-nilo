@@ -185,6 +185,7 @@
   .marca.v { background: #16a34a; }
   .marca.x { background: #dc2626; }
   .marca.tudook { background: #16a34a; }
+  .marca.pendente { background: #d97706; }
   .hist-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #333; margin-left: auto; }
   .hist-check-label input[type=checkbox] { width: 22px; height: 22px; }
 
@@ -478,7 +479,8 @@ function renderHistorico() {
     const linha = document.createElement("div");
     linha.className = "hist-item";
     const confirmados = confirmadosDe(h.id);
-    const tudoOk = PESSOAS_REAIS.every(p => confirmados.includes(p));
+    const faltam = PESSOAS_REAIS.filter(p => !confirmados.includes(p));
+    const tudoOk = faltam.length === 0;
     const marcas = PESSOAS_REAIS.map(p => {
       const ok = confirmados.includes(p);
       return `<span class="marca ${ok ? "v" : "x"}">${esc(p)} ${ok ? "✓" : "✗"}</span>`;
@@ -488,7 +490,9 @@ function renderHistorico() {
         <div><b>${esc(h.pessoa)}</b> ${esc(ACAO_LABEL[h.acao] || h.acao)} — ${esc(h.item)}</div>
         <div class="hist-confirma">
           ${marcas}
-          ${tudoOk ? '<span class="marca tudook">Tudo confirmado</span>' : ''}
+          ${tudoOk
+            ? '<span class="marca tudook">Tudo confirmado</span>'
+            : `<span class="marca pendente">Pendente — falta ${esc(faltam.join(", "))}</span>`}
           <label class="hist-check-label">
             <input type="checkbox" data-hist-id="${h.id}" ${eu && confirmados.includes(eu) ? "checked" : ""}>
             Confirmo
