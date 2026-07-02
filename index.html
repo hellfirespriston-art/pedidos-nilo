@@ -327,7 +327,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc,
-  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, runTransaction
+  doc, updateDoc, setDoc, serverTimestamp, query, orderBy, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
@@ -492,17 +492,20 @@ function confirmadosDe(pedidoId) {
   return confirmacoesDoPedido(pedidoId).map(c => c.pessoa);
 }
 
-window.alternarConfirmacao = async function(pedidoId, marcado) {
+/* Confirmação é DEFINITIVA: depois de confirmar, não dá pra desconfirmar. */
+window.confirmarNoHistorico = async function(pedidoId, chk) {
   const eu = minhaIdentidade();
-  if (!eu) { pedirIdentidadeSeNecessario(); return; }
+  if (!eu) { chk.checked = false; pedirIdentidadeSeNecessario(); return; }
+  if (confirmadosDe(pedidoId).includes(eu)) return;
+  if (!confirm(`${eu}, confirmar este registro? Depois de confirmar NÃO dá para voltar atrás.`)) {
+    chk.checked = false;
+    return;
+  }
   const refDoc = doc(db, "confirmacoes", `${pedidoId}_${eu}`);
   try {
-    if (marcado) {
-      await setDoc(refDoc, { pedidoId, pessoa: eu, quando: serverTimestamp() });
-    } else {
-      await deleteDoc(refDoc);
-    }
+    await setDoc(refDoc, { pedidoId, pessoa: eu, quando: serverTimestamp() });
   } catch (e) {
+    chk.checked = false;
     alert("Não deu para salvar sua confirmação. Verifique a internet e tente de novo.");
   }
 };
@@ -591,10 +594,12 @@ function renderHistorico() {
             ? '<span class="marca tudook">Tudo confirmado</span>'
             : `<span class="marca pendente">Pendente — falta ${esc(faltam.join(", "))}</span>`}
           ${textosConfirmou}
-          <label class="hist-check-label">
-            <input type="checkbox" data-pedido-id="${g.pedidoId}" ${eu && confirmados.includes(eu) ? "checked" : ""}>
-            Confirmo
-          </label>
+          ${eu && confirmados.includes(eu)
+            ? ""
+            : `<label class="hist-check-label">
+                 <input type="checkbox" data-pedido-id="${g.pedidoId}">
+                 Confirmo
+               </label>`}
         </div>
       </div>
     `;
@@ -602,7 +607,7 @@ function renderHistorico() {
   });
 
   alvo.querySelectorAll("input[data-pedido-id]").forEach(chk => {
-    chk.onchange = () => alternarConfirmacao(chk.dataset.pedidoId, chk.checked);
+    chk.onchange = () => confirmarNoHistorico(chk.dataset.pedidoId, chk);
   });
 }
 
