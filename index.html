@@ -319,7 +319,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, onSnapshot, addDoc,
-  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -630,11 +630,24 @@ async function mudarStatus(id, novo) {
   const campos = novo === "entregue"
     ? { status: novo, entreguePor: eu, entregueEm: serverTimestamp() }
     : { status: novo, confirmadoPor: eu, confirmadoEm: serverTimestamp() };
+  const refPedido = doc(db, "pedidos", id);
   try {
-    await updateDoc(doc(db, "pedidos", id), campos);
+    /* transacao: reconfere o status direto no servidor antes de gravar, pra 2 celulares nao conseguirem
+       fazer a mesma etapa ao mesmo tempo (evita virar 2 linhas "entregue" pro mesmo pedido no historico) */
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(refPedido);
+      if (!snap.exists() || snap.data().status !== esperado) {
+        throw new Error("STATUS_MUDOU");
+      }
+      tx.update(refPedido, campos);
+    });
     await registrarHistorico(novo, pedido.item, eu, id);
   } catch (e) {
-    alert("Não deu para salvar essa mudança. Verifique a internet e tente de novo.");
+    if (e.message === "STATUS_MUDOU") {
+      alert("Esse pedido já mudou de status em outro celular nesse instante. Atualizando a tela.");
+    } else {
+      alert("Não deu para salvar essa mudança. Verifique a internet e tente de novo.");
+    }
   }
 }
 
@@ -645,11 +658,21 @@ async function apagarPedido(id) {
   if (!pedido) return;
   if (pedido.status !== "pedido") { alert("Esse pedido já foi entregue e não pode mais ser apagado."); return; }
   if (!confirm(`Apagar o pedido "${pedido.item}"? Essa ação não pode ser desfeita (mas fica registrada no Histórico).`)) return;
+  const refPedido = doc(db, "pedidos", id);
   try {
-    await deleteDoc(doc(db, "pedidos", id));
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(refPedido);
+      if (!snap.exists()) throw new Error("JA_SUMIU");
+      if (snap.data().status !== "pedido") throw new Error("STATUS_MUDOU");
+      tx.delete(refPedido);
+    });
     await registrarHistorico("apagou", pedido.item, eu, id);
   } catch (e) {
-    alert("Não deu para apagar. Verifique a internet e tente de novo.");
+    if (e.message === "STATUS_MUDOU") {
+      alert("Esse pedido já foi marcado como entregue em outro celular e não pode mais ser apagado.");
+    } else if (e.message !== "JA_SUMIU") {
+      alert("Não deu para apagar. Verifique a internet e tente de novo.");
+    }
   }
 }
 
