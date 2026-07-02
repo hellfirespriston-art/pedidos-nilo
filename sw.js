@@ -1,6 +1,6 @@
 /* deploy automatico via GitHub ligado 01/07/2026 */
 /* Pedidos Nilo - service worker (HTML rede-primeiro, assets cache-primeiro) */
-const CACHE = 'pedidos-nilo-v2';
+const CACHE = 'pedidos-nilo-v3';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'icon-512-maskable.png', 'logo-limps.png'
