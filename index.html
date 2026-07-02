@@ -541,7 +541,7 @@ function dataHoraFmt(ts) {
   return `${dd}/${mm} ${hh}:${mi}`;
 }
 
-const ACAO_LABEL = { criou: "pediu", entregue: "marcou entregue", confirmado: "confirmou", apagou: "apagou" };
+const ACAO_LABEL = { criou: "pediu", entregue: "entregou", confirmado: "recebeu", apagou: "cancelou" };
 
 function renderHistorico() {
   const alvo = document.getElementById("historico");
