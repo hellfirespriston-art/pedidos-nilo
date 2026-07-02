@@ -280,10 +280,10 @@
     <h3>Botão "+ Novo pedido"</h3>
     <p>Abre a tela pra registrar um pedido novo. Escreva o que foi pedido (ex: "5 galões de cloro granulado") e toque em Salvar. O pedido aparece na hora pra todo mundo, com seu nome.</p>
 
-    <h3>Botão "Marcar entregue"</h3>
+    <h3>Botão "Entregue"</h3>
     <p>Quem entregou marca aqui — por isso quem FEZ o pedido não consegue marcar a própria entrega (o botão fica cinza pra ele). Fica registrado seu nome e o horário. Depois disso o pedido não pode mais ser apagado.</p>
 
-    <h3>Botão "Confirmar"</h3>
+    <h3>Botão "Recebido"</h3>
     <p>Só quem FEZ o pedido consegue confirmar, e só depois que alguém marcou entregue. É o "recebi e conferi" (quantidade certa, produto certo): fecha o pedido como concluído.</p>
 
     <h3>Botão "x" (apagar)</h3>
@@ -419,6 +419,7 @@ async function registrarHistorico(acao, item, pessoa, pedidoId) {
 
 const PESSOAS = ["Todos", "Nilo", "Heitor", "Evelin"];
 const PESSOAS_REAIS = ["Nilo", "Heitor", "Evelin"];
+const ICONE_APERTO_MAO = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
 let filtroAtual = "Todos";
 let dadosAtuais = [];
 
@@ -691,8 +692,8 @@ function render() {
         <div class="badge status-${p.status}">${statusLabel(p.status)}</div>
       </div>
       <div class="card-actions">
-        <button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">Marcar entregue</button>
-        <button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Confirmar</button>
+        <button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">${ICONE_APERTO_MAO} Entregue</button>
+        <button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Recebido</button>
         <button class="btn-apagar" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-apagar="1">x</button>
       </div>
     `;
