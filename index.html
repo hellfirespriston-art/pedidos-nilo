@@ -679,7 +679,7 @@ document.querySelectorAll(".aba").forEach(a => {
     document.getElementById("historico").classList.toggle("ativo", ehHistorico);
     document.getElementById("lista").classList.toggle("escondida", ehHistorico);
     document.getElementById("filtroBar").style.display = ehHistorico ? "none" : "flex";
-    document.getElementById("botaoNovo").style.display = ehHistorico ? "none" : "block";
+    document.getElementById("botaoNovo").style.display = (ehHistorico || minhaIdentidade() === "Evelin") ? "none" : "block";
   };
 });
 
