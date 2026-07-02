@@ -189,6 +189,19 @@
   .marca.v { background: #16a34a; }
   .marca.x { background: #dc2626; }
   .marca.tudook { background: #16a34a; }
+  /* Quadradão verde com V — sinal de bate-olho de que os 3 confirmaram */
+  .selo-ok-grande {
+    align-self: center;
+    aspect-ratio: 1;
+    width: min(30vw, 120px);
+    background: #16a34a;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .selo-ok-grande svg { width: 74%; height: 74%; }
   .marca.pendente { background: #d97706; }
   .marca.apagado { background: #6b7280; }
   .hist-check-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #333; margin-left: auto; }
@@ -596,7 +609,7 @@ function renderHistorico() {
             ? '<span class="marca apagado">PEDIDO CANCELADO</span>'
             : `${marcas}
           ${tudoOk
-            ? '<span class="marca tudook">Tudo confirmado</span>'
+            ? ""
             : `<span class="marca pendente">Pendente — falta ${esc(faltam.join(", "))}</span>`}
           ${eu && confirmados.includes(eu)
             ? ""
@@ -606,6 +619,11 @@ function renderHistorico() {
                </label>`}`}
         </div>
       </div>
+      ${(!foiApagado && tudoOk)
+        ? `<div class="selo-ok-grande" title="Tudo confirmado" aria-label="Tudo confirmado">
+             <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5l5.5 5.5L20 6.5" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+           </div>`
+        : ""}
     `;
     alvo.appendChild(linha);
   });
