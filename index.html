@@ -270,10 +270,10 @@
     <p>Abre a tela pra registrar um pedido novo. Escreva o que foi pedido (ex: "5 galões de cloro granulado") e toque em Salvar. O pedido aparece na hora pra todo mundo, com seu nome.</p>
 
     <h3>Botão "Marcar entregue"</h3>
-    <p>Só use quando o produto realmente chegou de verdade nas suas mãos. Fica registrado seu nome e o horário. Depois disso o pedido não pode mais ser apagado.</p>
+    <p>Quem entregou marca aqui — por isso quem FEZ o pedido não consegue marcar a própria entrega (o botão fica cinza pra ele). Fica registrado seu nome e o horário. Depois disso o pedido não pode mais ser apagado.</p>
 
     <h3>Botão "Confirmar"</h3>
-    <p>Só use depois de já ter conferido a entrega (quantidade certa, produto certo). É o passo final: fecha o pedido como concluído.</p>
+    <p>Só quem FEZ o pedido consegue confirmar, e só depois que alguém marcou entregue. É o "recebi e conferi" (quantidade certa, produto certo): fecha o pedido como concluído.</p>
 
     <h3>Botão "x" (apagar)</h3>
     <p>Apaga um pedido, mas só funciona enquanto ele ainda está como "Pedido feito" (antes de entregar). Use só se o pedido foi um engano ou duplicado — mesmo apagado, fica marcado no Histórico.</p>
@@ -593,7 +593,7 @@ function renderHistorico() {
         </div>
         <div class="hist-confirma">
           ${foiApagado
-            ? '<span class="marca apagado">Apagado</span>'
+            ? '<span class="marca apagado">PEDIDO CANCELADO</span>'
             : `${marcas}
           ${tudoOk
             ? '<span class="marca tudook">Tudo confirmado</span>'
@@ -654,9 +654,14 @@ function render() {
     return;
   }
 
+  const eu = minhaIdentidade();
   dados.forEach(p => {
     const card = document.createElement("div");
     card.className = "card status-" + p.status;
+    /* ordem certa do fluxo: quem pediu NÃO marca a própria entrega (outra pessoa marca),
+       e só quem pediu confirma o recebimento */
+    const podeEntregar = p.status === "pedido" && eu && eu !== p.quem;
+    const podeConfirmar = p.status === "entregue" && eu && eu === p.quem;
     let log = "";
     if (p.entreguePor) log += `<div class="card-log azul">Entregue por ${esc(p.entreguePor)} ${dataFmt(p.entregueEm)}</div>`;
     if (p.confirmadoPor) log += `<div class="card-log">Confirmado por ${esc(p.confirmadoPor)} ${dataFmt(p.confirmadoEm)}</div>`;
@@ -670,8 +675,8 @@ function render() {
         <div class="badge status-${p.status}">${statusLabel(p.status)}</div>
       </div>
       <div class="card-actions">
-        <button class="btn-entregue" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-status="entregue">Marcar entregue</button>
-        <button class="btn-confirmado" ${p.status !== "entregue" ? "disabled" : ""} data-id="${p.id}" data-status="confirmado">Confirmar</button>
+        <button class="btn-entregue" ${podeEntregar ? "" : "disabled"} data-id="${p.id}" data-status="entregue">Marcar entregue</button>
+        <button class="btn-confirmado" ${podeConfirmar ? "" : "disabled"} data-id="${p.id}" data-status="confirmado">Confirmar</button>
         <button class="btn-apagar" ${p.status !== "pedido" ? "disabled" : ""} data-id="${p.id}" data-apagar="1">x</button>
       </div>
     `;
@@ -694,6 +699,9 @@ async function mudarStatus(id, novo) {
   /* trava de sequencia: nao deixa confirmar sem ter passado por entregue, mesmo se alguem mexer no botao pelo navegador */
   const esperado = novo === "entregue" ? "pedido" : "entregue";
   if (pedido.status !== esperado) { alert("Esse pedido já mudou de status em outro celular. Atualizando a tela."); return; }
+  /* trava de papel: quem pediu não marca a própria entrega; só quem pediu confirma o recebimento */
+  if (novo === "entregue" && eu === pedido.quem) { alert("Quem fez o pedido não pode marcar a própria entrega. Outra pessoa marca quando entregar."); return; }
+  if (novo === "confirmado" && eu !== pedido.quem) { alert(`Só quem fez o pedido (${pedido.quem}) pode confirmar o recebimento.`); return; }
   const pergunta = novo === "entregue"
     ? `Confirma que a entrega foi feita? Isso vai ficar registrado com o nome ${eu}.`
     : `Confirma o recebimento como ${eu}? Depois disso o pedido fecha.`;
