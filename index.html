@@ -258,6 +258,12 @@
   .gastos-selo.pago { color: #16a34a; }
   .gastos-selo.nao-pago { color: #ef4444; }
   .gastos-selo.pendente { color: #d97706; }
+  .gastos-categoria { margin-bottom: 20px; }
+  .gastos-categoria-titulo {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 16px; font-weight: 800; color: #1e6b52;
+    margin: 0 0 8px; padding-bottom: 6px; border-bottom: 2px solid #e2e5e9;
+  }
 
   .ajuda-fab {
     flex-shrink: 0;
@@ -399,6 +405,13 @@
     <input id="confirmarQuantidadeInput" placeholder="Ex: 5 galões" maxlength="40">
     <label>Valor</label>
     <input id="confirmarValorInput" placeholder="Ex: R$ 150,00" maxlength="30">
+    <label>Categoria</label>
+    <select id="confirmarCategoriaInput">
+      <option>Químicos</option>
+      <option>Equipamentos</option>
+      <option>Manutenção</option>
+      <option>Outros</option>
+    </select>
     <div class="modal-actions">
       <button class="btn-cancelar" onclick="fecharModalConfirmarPedido()">Cancelar</button>
       <button class="btn-salvar" onclick="salvarConfirmacaoPedido()">Pedido pronto</button>
@@ -709,10 +722,20 @@ function gastosNoPeriodo(inicio, fim) {
     } else {
       naoContados++;
     }
-    return { item: h.item, valor: h.pedidoValor, quando: h.quando, numerico, pagamento };
+    return { item: h.item, valor: h.pedidoValor, quando: h.quando, numerico, pagamento, categoria: h.pedidoCategoria || "Outros" };
   });
   linhas.sort((a, b) => b.quando.toDate() - a.quando.toDate());
-  return { total, totalPago, totalEmAberto, contados, naoContados, linhas };
+
+  const porCategoriaMap = new Map();
+  linhas.forEach(l => {
+    if (!porCategoriaMap.has(l.categoria)) porCategoriaMap.set(l.categoria, { categoria: l.categoria, subtotal: 0, itens: [] });
+    const c = porCategoriaMap.get(l.categoria);
+    if (l.numerico != null) c.subtotal += l.numerico;
+    c.itens.push(l);
+  });
+  const porCategoria = [...porCategoriaMap.values()].sort((a, b) => b.subtotal - a.subtotal);
+
+  return { total, totalPago, totalEmAberto, contados, naoContados, linhas, porCategoria };
 }
 
 function renderGastos() {
@@ -727,10 +750,10 @@ function renderGastos() {
   });
 
   const { inicio, fim } = rangePeriodoGastos(periodoGastosAtual);
-  const { total, totalPago, totalEmAberto, contados, naoContados, linhas } = gastosNoPeriodo(inicio, fim);
+  const { total, totalPago, totalEmAberto, contados, naoContados, porCategoria } = gastosNoPeriodo(inicio, fim);
   const resumo = document.getElementById("gastosResumo");
 
-  if (linhas.length === 0) {
+  if (porCategoria.length === 0) {
     resumo.innerHTML = `<div class="hist-aviso">Nenhum gasto confirmado nesse período ainda.</div>`;
     return;
   }
@@ -745,17 +768,25 @@ function renderGastos() {
     <div class="gastos-total">${formatarReal(total)}</div>
     <div class="gastos-sub">${contados} pedido${contados === 1 ? "" : "s"} confirmado${contados === 1 ? "" : "s"}${naoContados ? ` · ${naoContados} sem valor reconhecido` : ""}</div>
     <div class="gastos-sub">Pago: <b>${formatarReal(totalPago)}</b> · Em aberto: <b>${formatarReal(totalEmAberto)}</b></div>
-    <div class="gastos-lista">
-      ${linhas.map(l => `
-        <div class="gastos-item">
-          <div class="gastos-item-topo">
-            <span class="gastos-item-nome">${esc(l.item)}</span>
-            <span class="gastos-item-valor">${l.numerico != null ? formatarReal(l.numerico) : esc(l.valor)}</span>
-          </div>
-          <div class="gastos-item-data">${dataHoraFmt(l.quando)} · ${SELO_PAGAMENTO[l.pagamento]}</div>
+    ${porCategoria.map(c => `
+      <div class="gastos-categoria">
+        <div class="gastos-categoria-titulo">
+          <span>${esc(c.categoria)}</span>
+          <span>${formatarReal(c.subtotal)}</span>
         </div>
-      `).join("")}
-    </div>
+        <div class="gastos-lista">
+          ${c.itens.map(l => `
+            <div class="gastos-item">
+              <div class="gastos-item-topo">
+                <span class="gastos-item-nome">${esc(l.item)}</span>
+                <span class="gastos-item-valor">${l.numerico != null ? formatarReal(l.numerico) : esc(l.valor)}</span>
+              </div>
+              <div class="gastos-item-data">${dataHoraFmt(l.quando)} · ${SELO_PAGAMENTO[l.pagamento]}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `).join("")}
   `;
 }
 
@@ -814,6 +845,7 @@ function renderHistorico() {
               h.pedidoProduto ? `Produto: ${esc(h.pedidoProduto)}` : "",
               h.pedidoQuantidade ? `Qtd: ${esc(h.pedidoQuantidade)}` : "",
               h.pedidoValor ? `Valor: ${esc(h.pedidoValor)}` : "",
+              h.pedidoCategoria ? `Categoria: ${esc(h.pedidoCategoria)}` : "",
             ].filter(Boolean).join(" · ");
             const rotuloAcao = h.acao === "pagamento"
               ? (h.pagamentoStatus === "pago" ? "marcou como PAGO" : "marcou como NÃO PAGO")
@@ -928,6 +960,7 @@ function render() {
         p.pedidoProduto ? `Produto: ${esc(p.pedidoProduto)}` : "",
         p.pedidoQuantidade ? `Qtd: ${esc(p.pedidoQuantidade)}` : "",
         p.pedidoValor ? `Valor: ${esc(p.pedidoValor)}` : "",
+        p.pedidoCategoria ? `Categoria: ${esc(p.pedidoCategoria)}` : "",
       ].filter(Boolean).join(" · ");
       if (detalhes) log += `<div class="card-recado">${detalhes}</div>`;
       log += `<div class="card-log">Evelin confirmou o pedido · ${dataHoraFmt(p.evelinConfirmouEm)}</div>`;
@@ -1070,6 +1103,7 @@ window.abrirModalConfirmarPedido = function(id) {
   document.getElementById("confirmarProdutoInput").value = pedido.item || "";
   document.getElementById("confirmarQuantidadeInput").value = "";
   document.getElementById("confirmarValorInput").value = "";
+  document.getElementById("confirmarCategoriaInput").value = "Químicos";
   document.getElementById("modalConfirmarPedidoBg").classList.add("aberto");
 };
 window.fecharModalConfirmarPedido = function() {
@@ -1081,12 +1115,13 @@ window.salvarConfirmacaoPedido = async function() {
   const produto = document.getElementById("confirmarProdutoInput").value.trim();
   const quantidade = document.getElementById("confirmarQuantidadeInput").value.trim();
   const valor = document.getElementById("confirmarValorInput").value.trim();
+  const categoria = document.getElementById("confirmarCategoriaInput").value;
   if (!produto) { alert("Diz o que vai ser enviado."); return; }
   const id = idEmConfirmacao;
   const pedido = dadosAtuais.find(p => p.id === id);
   if (!pedido) return;
   fecharModalConfirmarPedido();
-  const detalhes = { pedidoProduto: produto, pedidoQuantidade: quantidade, pedidoValor: valor };
+  const detalhes = { pedidoProduto: produto, pedidoQuantidade: quantidade, pedidoValor: valor, pedidoCategoria: categoria };
   const refPedido = doc(db, "pedidos", id);
   try {
     await runTransaction(db, async (tx) => {
