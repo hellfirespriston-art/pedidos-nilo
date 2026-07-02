@@ -93,7 +93,7 @@
     font-weight: 600;
     color: #fff;
   }
-  .btn-entregue { background: #2563eb; }
+  .btn-entregue { background: #16a34a; }
   .btn-confirmado { background: #16a34a; }
   .btn-apagar { background: #ef4444; }
   .card-actions .btn-apagar { flex: 0 0 44px; padding: 8px; }
@@ -287,44 +287,53 @@
   <div class="modal">
     <h2>Como usar o app</h2>
 
+    <h3>O fluxo de um pedido, passo a passo</h3>
+    <p>1) Nilo ou Heitor faz o pedido → 2) Evelin confirma (ou descarta) o que vai mandar → 3) Evelin marca "Entregue" quando envia → 4) quem fez o pedido marca "Recebido" ao conferir que chegou certo. Cada etapa fica com nome e horário.</p>
+
     <h3>Aba "Pedidos"</h3>
     <p>Mostra os pedidos que ainda estão em andamento. É a tela principal do dia a dia.</p>
 
     <h3>Aba "Histórico"</h3>
-    <p>Mostra TUDO que já aconteceu (quem pediu, quem entregou, quem confirmou, e até o que foi apagado). Ninguém consegue editar ou apagar essas linhas — é o registro oficial pra tirar dúvida.</p>
+    <p>Mostra TUDO que já aconteceu (quem pediu, quem confirmou, quem entregou, quem recebeu, e até o que foi cancelado). Ninguém — nem o app — consegue editar ou apagar essas linhas: é o registro oficial pra tirar dúvida.</p>
 
-    <h3>Botões Todos / Nilo / Heitor / Evelin</h3>
-    <p>Filtram a lista pra mostrar só os pedidos daquela pessoa. Use pra achar rápido o que cada um pediu.</p>
+    <h3>Botões Todos / Nilo / Heitor</h3>
+    <p>Filtram a lista de pedidos por quem pediu. A Evelin não faz pedido (ela só vende/entrega), por isso não tem filtro com o nome dela.</p>
 
-    <h3>Botão "+ Novo pedido"</h3>
-    <p>Abre a tela pra registrar um pedido novo. Escreva o que foi pedido (ex: "5 galões de cloro granulado") e toque em Salvar. O pedido aparece na hora pra todo mundo, com seu nome.</p>
+    <h3>Botão "+ Novo pedido" (Nilo e Heitor)</h3>
+    <p>Só aparece pra quem faz pedido. Escreva o que precisa (ex: "5 galões de cloro granulado") e toque em Salvar. O pedido aparece na hora pra todo mundo, esperando a Evelin conferir.</p>
 
     <h3>Evelin: "Confirmar pedido" ou "Descartar"</h3>
-    <p>Todo pedido novo espera a Evelin (Produto Nossa Casa) olhar primeiro. Ela toca em "Confirmar pedido" e informa o produto, a quantidade e o valor de verdade que vai mandar (pode ser diferente do texto do pedido) — esses dados ficam visíveis pra todo mundo no card. Se não tiver como atender, ela toca em "Descartar" e o pedido é cancelado. Só depois da confirmação dela o botão "Entregue" libera.</p>
+    <p>Todo pedido novo espera a Evelin olhar primeiro. Em "Confirmar pedido" ela informa o produto, a quantidade e o valor de verdade que vai mandar (pode ser diferente do texto do pedido) — esses dados ficam visíveis pra todo mundo no card. Se não tiver como atender, ela toca em "Descartar" e o pedido fecha como cancelado.</p>
 
-    <h3>Botão "Entregue"</h3>
-    <p>Quem entregou marca aqui — por isso quem FEZ o pedido não consegue marcar a própria entrega (o botão fica cinza pra ele), e também só libera depois que a Evelin confirmar o pedido. Fica registrado seu nome e o horário. Depois disso o pedido não pode mais ser apagado.</p>
+    <h3>Evelin: "Marcar preparando" e "Deixar recado"</h3>
+    <p>Depois de confirmar o pedido, a Evelin pode avisar que já está separando ("Preparando ✓", aparece em laranja pro Nilo/Heitor) e deixar um recado curto a qualquer momento (ex: "chega amanhã de manhã").</p>
 
-    <h3>Botão "Recebido"</h3>
-    <p>Só quem FEZ o pedido consegue confirmar, e só depois que alguém marcou entregue. É o "recebi e conferi" (quantidade certa, produto certo): fecha o pedido como concluído.</p>
+    <h3>Evelin: botão "Entregue"</h3>
+    <p>Ela marca quando o produto realmente saiu/chegou. Só libera depois que ela mesma confirmou o pedido. Fica registrado o nome dela e o horário — depois disso o pedido não pode mais ser apagado.</p>
+
+    <h3>Nilo/Heitor: botão "Recebido"</h3>
+    <p>Só quem FEZ o pedido consegue tocar, e só depois que a Evelin marcou "Entregue". É o "recebi e conferi" (produto e quantidade certos): fecha o pedido como concluído.</p>
 
     <h3>Botão "x" (apagar)</h3>
-    <p>Apaga um pedido, mas só funciona enquanto ele ainda está como "Pedido feito" (antes de entregar). Use só se o pedido foi um engano ou duplicado — mesmo apagado, fica marcado no Histórico.</p>
+    <p>Apaga um pedido, mas só funciona enquanto ele ainda está como "Pedido feito" (antes da Evelin marcar Entregue). Use só se foi um engano ou duplicidade — mesmo apagado, fica marcado no Histórico.</p>
+
+    <h3>Aba Histórico: caixinha "Confirmo" e selo verde</h3>
+    <p>Além do fluxo normal, qualquer um dos 3 pode marcar "Confirmo" numa linha do Histórico — é uma confirmação extra e definitiva (não dá pra desmarcar depois), sem efeito no status do pedido. Quando Nilo, Heitor e Evelin já confirmaram, aparece um selo verde grande — é só um jeito rápido de bater o olho e ver que todo mundo já validou aquele pedido.</p>
 
     <h3>Botão "Instalar app"</h3>
     <p>Coloca o app na tela inicial do celular, como se fosse um aplicativo de verdade. Recomendado fazer uma vez só.</p>
 
     <h3>Avisos no celular (notificações)</h3>
     <p><b>IMPORTANTE: na primeira vez que abrir o app, o celular vai perguntar se permite notificações — toque em "Permitir". Se recusar, os avisos NÃO chegam.</b></p>
-    <p>Quando alguém marca um pedido como "entregue", os outros dois recebem um aviso no celular — mesmo com o app fechado. Com o app aberto, o aviso aparece em verde no topo da tela.</p>
+    <p>Quando alguém marca um pedido como "Entregue", os outros dois recebem um aviso no celular — mesmo com o app fechado. Com o app aberto, o aviso aparece em verde no topo da tela.</p>
     <p>Se recusou sem querer, dá pra liberar de novo nas configurações de notificação do navegador.</p>
     <p>Em iPhone, os avisos só funcionam se o app tiver sido adicionado à tela inicial (é uma exigência da Apple, não do app).</p>
 
     <h3>Para o app funcionar bem</h3>
     <ul>
       <li>Escolha seu nome certo (Nilo, Heitor ou Evelin) na primeira vez que abrir — depois disso fica travado nesse celular.</li>
-      <li>Só marque "Entregue" quando o produto tiver chegado de verdade, nunca antes.</li>
-      <li>Só toque em "Confirmar" depois de conferir a entrega.</li>
+      <li>Evelin só marca "Entregue" quando o produto tiver saído/chegado de verdade, nunca antes.</li>
+      <li>Quem fez o pedido só toca em "Recebido" depois de conferir de verdade.</li>
       <li>Não apague pedido à toa — use o "x" só em caso de erro real.</li>
       <li>Em caso de dúvida sobre o que aconteceu com um pedido, olhe a aba "Histórico".</li>
       <li>Toque em "Permitir" na primeira vez pra receber os avisos de entrega no celular.</li>
